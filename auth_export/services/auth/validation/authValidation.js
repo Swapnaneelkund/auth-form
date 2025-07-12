@@ -31,11 +31,12 @@ const resetPasswordSchema = z.object({
 
 const validate = (schema) => asyncHandler(async (req, res, next) => {
   try {
+    console.log(req.body)
     await schema.parseAsync(req.body);
     next();
   } catch (error) {
     const errors = error.errors.map((err) => err.message);
-    throw new ApiError(400, "Validation failed", errors);
+    throw new ApiError(400, "Validation failed", error);
   }
 });
 
