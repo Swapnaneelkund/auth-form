@@ -36,7 +36,7 @@ const registerUser = asyncHandler(async (req, res) => {
   await user.save({ validateBeforeSave: false });
 
   // Send verification email
-  const verificationURL = `http://localhost:5173/verify-email/${verificationToken}`;
+  const verificationURL = `http://localhost:8000/api/auth/verify-email/${verificationToken}`;
 
   const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -66,7 +66,7 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 
   return res.status(201).json(
-    new apiResponce(200, createdUser, "User registered successfully. Please check your email for verification.")
+    new apiResponce(200,"User registered successfully. Please check your email for verification.")
   );
 });
 
@@ -125,7 +125,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
   await user.save({ validateBeforeSave: false });
 
   // Create reset URL
-  const resetURL = `http://localhost:5173/reset-password/${resetToken}`;
+  const resetURL = `http://localhost:8000/api/auth/reset-password/${resetToken}`;
 
   // Send email
   const transporter = nodemailer.createTransport({
