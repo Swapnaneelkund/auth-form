@@ -14,8 +14,8 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new ApiError(400, "All fields are required");
   }
 
-  const PendingUser = await PendingUser.findOne({ email });
-  if (PendingUser) {
+  const pendingUser = await PendingUser.findOne({ email });
+  if (pendingUser) {
     throw new ApiError(409, "User with this email already exists");
   }
   const existingUser = await User.findOne({ email });
@@ -31,9 +31,7 @@ const registerUser = asyncHandler(async (req, res) => {
   pending.verificationToken = hashedToken;
   pending.verificationTokenExpires = Date.now() + 3600000; // 1 hour
 
-  // Debug log: print tokens
-  console.log('Verification token (raw):', verificationToken);
-  console.log('Verification token (hashed):', hashedToken);
+  // Debug log: print tokens (removed console.log statements)
 
   await pending.save({ validateBeforeSave: false });
 
@@ -122,8 +120,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
     passwordResetExpires:Date.now() + 3600000
   })
 
-  console.log('Reset token (raw):', resetToken);
-  console.log('Reset token (hashed):', hashedResetToken);
+  // Debug log: print tokens (removed console.log statements)
 
   // Create reset URL
   const resetURL = `http://localhost:8000/api/auth/reset-password/${resetToken}`; //`https://luxe-carry.vercel.app/reset-password/${resetToken}`
