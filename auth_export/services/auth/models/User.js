@@ -20,15 +20,10 @@ const userSchema = new mongoose.Schema({
     required: true,
     minlength: 8,
   },
-  // Add fields for password reset token and expiry
-  passwordResetToken: String,
-  passwordResetExpires: Date,
   isVerified: {
     type: Boolean,
     default: false,
   },
-  verificationToken: String,
-  verificationTokenExpires: Date,
 }, { timestamps: true });
 
 // Hash password before saving

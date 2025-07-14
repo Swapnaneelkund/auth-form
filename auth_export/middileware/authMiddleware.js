@@ -14,8 +14,6 @@ const verifyJWT = asyncHandler(async (req, res, next) => {
     }
 
     const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
-    console.log("Decoded token:", decodedToken);
-
     const user = await User.findById(decodedToken.id).select("-password");
     console.log("User found in middleware:", user);
 
