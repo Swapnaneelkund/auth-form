@@ -6,6 +6,8 @@ const pendingUserSchema = new mongoose.Schema({
   password: String,
   verificationToken: String,
   verificationTokenExpires: Date,
+  passwordResetToken: String,
+  passwordResetExpires: Date,
 }, { timestamps: true });
 
 const PendingUser = mongoose.model('PendingUser', pendingUserSchema);
