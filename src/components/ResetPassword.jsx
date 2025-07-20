@@ -44,7 +44,7 @@ const ResetPassword = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      const response = await axios.post(`/api/auth/reset-password/${token}`, { password });
+      const response = await axios.post(`/api/auth/reset-password/${token}`, { password, confirmPassword });
       setMessage({ type: 'success', text: response.data.message || 'Password has been reset successfully!' });
       setTimeout(() => {
         navigate('/'); // Redirect to login page after successful reset

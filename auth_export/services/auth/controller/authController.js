@@ -4,6 +4,8 @@ import asyncHandler from "../../../utils/AsyncHandler.js";
 import User from '../models/User.js';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
+import PendingUser from '../models/pendingUser.js';
+
 
 const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
@@ -12,31 +14,29 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new ApiError(400, "All fields are required");
   }
 
+  const pendingUser = await PendingUser.findOne({ email });
+  if (pendingUser) {
+    throw new ApiError(409, "User with this email already exists");
+  }
   const existingUser = await User.findOne({ email });
   if (existingUser) {
     throw new ApiError(409, "User with this email already exists");
   }
-
-  const user = await User.create({
-    name,
-    email,
-    password,
-  });
-
+  const pending=await PendingUser.create({
+    name,email,password
+  })
   // Generate verification token
   const verificationToken = crypto.randomBytes(20).toString('hex');
   const hashedToken = crypto.createHash('sha256').update(verificationToken).digest('hex');
-  user.verificationToken = hashedToken;
-  user.verificationTokenExpires = Date.now() + 3600000; // 1 hour
+  pending.verificationToken = hashedToken;
+  pending.verificationTokenExpires = Date.now() + 3600000; // 1 hour
 
-  // Debug log: print tokens
-  console.log('Verification token (raw):', verificationToken);
-  console.log('Verification token (hashed):', hashedToken);
+  // Debug log: print tokens (removed console.log statements)
 
-  await user.save({ validateBeforeSave: false });
+  await pending.save({ validateBeforeSave: false });
 
   // Send verification email
-  const verificationURL = `http://localhost:5173/verify-email/${verificationToken}`;
+  const verificationURL = `http://localhost:8000/api/auth/verify-email/${verificationToken}`;
 
   const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -48,7 +48,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
   const mailOptions = {
     from: process.env.EMAIL_USER,
-    to: user.email,
+    to: pending.email,
     subject: 'Email Verification',
     html: `
       <p>Please click on the following link to verify your email address:</p>
@@ -58,15 +58,8 @@ const registerUser = asyncHandler(async (req, res) => {
   };
 
   await transporter.sendMail(mailOptions);
-
-  const createdUser = await User.findById(user._id).select("-password");
-
-  if (!createdUser) {
-    throw new ApiError(500, "Something went wrong while registering the user");
-  }
-
   return res.status(201).json(
-    new apiResponce(200, createdUser, "User registered successfully. Please check your email for verification.")
+    new apiResponce(200,"User registered successfully. Please check your email for verification.")
   );
 });
 
@@ -113,19 +106,24 @@ const forgotPassword = asyncHandler(async (req, res) => {
   }
 
   // Generate a reset token
-  const resetToken = crypto.randomBytes(20).toString('hex');
+  let resetToken;
+  let exists = true;
+
+  while (exists) {
+  resetToken = crypto.randomBytes(20).toString("hex");
+  exists = await PendingUser.exists({ verificationToken: resetToken });
+ }
   const hashedResetToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-  user.passwordResetToken = hashedResetToken;
-  user.passwordResetExpires = Date.now() + 3600000; // 1 hour
+  const pending= await PendingUser.create({
+    email: user.email,
+    passwordResetToken:hashedResetToken,
+    passwordResetExpires:Date.now() + 3600000
+  })
 
-  // Debug log: print tokens
-  console.log('Reset token (raw):', resetToken);
-  console.log('Reset token (hashed):', hashedResetToken);
-
-  await user.save({ validateBeforeSave: false });
+  // Debug log: print tokens (removed console.log statements)
 
   // Create reset URL
-  const resetURL = `http://localhost:5173/reset-password/${resetToken}`;
+  const resetURL = `http://localhost:8000/api/auth/reset-password/${resetToken}`; //`https://luxe-carry.vercel.app/reset-password/${resetToken}`
 
   // Send email
   const transporter = nodemailer.createTransport({
@@ -158,20 +156,29 @@ const forgotPassword = asyncHandler(async (req, res) => {
 const verifyEmail = asyncHandler(async (req, res) => {
   const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
 
-  const user = await User.findOne({
+  const pending = await PendingUser.findOne({
     verificationToken: hashedToken,
     verificationTokenExpires: { $gt: Date.now() },
   });
 
-  if (!user) {
+  if (!pending) {
     throw new ApiError(400, "Email verification token is invalid or has expired");
   }
 
-  user.isVerified = true;
-  user.verificationToken = undefined;
-  user.verificationTokenExpires = undefined;
-  await user.save({ validateBeforeSave: false });
-
+  const user = await User.create({
+    name: pending.name,
+    email: pending.email,
+    password: pending.password,
+    isVerified: true,
+  });
+  await PendingUser.deleteOne({ _id: pending._id });
+  const token =user.generateAuthToken();
+  res.cookie('authToken', token, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'Strict',
+    maxAge: 6 * 30 * 24 * 60 * 60 * 1000 
+});
   return res.status(200).json(
     new apiResponce(200, {}, "Email verified successfully!")
   );
@@ -181,19 +188,22 @@ const resetPassword = asyncHandler(async (req, res) => {
   const { token } = req.params;
   const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
-  const user = await User.findOne({
+  const pending=await PendingUser.findOne({
+    
     passwordResetToken: hashedToken,
     passwordResetExpires: { $gt: Date.now() },
-  });
+  })
 
-  if (!user) {
+  if (!pending) {
     throw new ApiError(400, "Password reset token is invalid or has expired");
   }
-
+  const user=await User.findOne({email:pending.email});
+    if(!user){
+    throw new ApiError(404,"User not found")
+  }
   user.password = req.body.password;
-  user.passwordResetToken = undefined;
-  user.passwordResetExpires = undefined;
   await user.save({ validateBeforeSave: false });
+  PendingUser.deleteOne({_id:pending._id})
 
   return res.status(200).json(
     new apiResponce(200, {}, "Password has been reset")
