@@ -35,7 +35,7 @@ const validate = (schema) => asyncHandler(async (req, res, next) => {
     next();
   } catch (error) {
     const errors = error.errors.map((err) => err.message);
-    throw new ApiError(400, "Validation failed", errors);
+    throw new ApiError(400, "Validation failed", error);
   }
 });
 
