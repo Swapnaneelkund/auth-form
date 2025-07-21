@@ -5,9 +5,10 @@ const pendingUserSchema = new mongoose.Schema({
   email: { type: String, unique: true },
   password: String,
   verificationToken: String,
-  verificationTokenExpires: Date,
-  passwordResetToken: String,
-  passwordResetExpires: Date,
+  verificationTokenExpires:{
+      type: Date,
+      expires: 0,
+  },
 }, { timestamps: true });
 
 const PendingUser = mongoose.model('PendingUser', pendingUserSchema);
