@@ -6,6 +6,8 @@ import FormInput from './form/FormInput';
 import FormButton from './form/FormButton';
 import Notification from './Notification';
 
+import RedirectingNotification from './RedirectingNotification';
+
 const ResetPassword = () => {
   const { token } = useParams();
   const navigate = useNavigate();
@@ -14,6 +16,18 @@ const ResetPassword = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [errors, setErrors] = useState({});
+  const [isRedirecting, setIsRedirecting] = useState(false);
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const toggleConfirmPasswordVisibility = () => {
+    setShowConfirmPassword(!showConfirmPassword);
+  };
 
   const clearMessage = () => {
     setMessage({ type: '', text: '' });
@@ -44,8 +58,9 @@ const ResetPassword = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      const response = await axios.post(`/api/auth/reset-password/${token}`, { password });
+      const response = await axios.post(`/api/auth/reset-password/${token}`, { password, confirmPassword });
       setMessage({ type: 'success', text: response.data.message || 'Password has been reset successfully!' });
+      setIsRedirecting(true);
       setTimeout(() => {
         navigate('/'); // Redirect to login page after successful reset
       }, 3000);
@@ -77,22 +92,30 @@ const ResetPassword = () => {
           <FormInput
             label="New Password *"
             icon={Lock}
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             name="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Enter your new password"
             error={errors.password}
+            toggleVisibility={{
+              show: showPassword,
+              onClick: togglePasswordVisibility,
+            }}
           />
           <FormInput
             label="Confirm New Password *"
             icon={Lock}
-            type="password"
+            type={showConfirmPassword ? 'text' : 'password'}
             name="confirmPassword"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             placeholder="Confirm your new password"
             error={errors.confirmPassword}
+            toggleVisibility={{
+              show: showConfirmPassword,
+              onClick: toggleConfirmPasswordVisibility,
+            }}
           />
           <FormButton
             onClick={handleSubmit}
@@ -102,6 +125,7 @@ const ResetPassword = () => {
         </div>
       </div>
       <Notification message={message.text} type={message.type} onClose={clearMessage} />
+      <RedirectingNotification message="Redirecting to login..." visible={isRedirecting} />
     </div>
   );
 };
