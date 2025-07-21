@@ -121,7 +121,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
 
   // Create reset URL
-  const resetURL = `${process.env.URL}/api/auth/reset-password/${resetToken}`; //`https://luxe-carry.vercel.app/reset-password/${resetToken}`
+  const resetURL = `${process.env.frontURL}/reset-password/${resetToken}`; //`https://luxe-carry.vercel.app/reset-password/${resetToken}`
 
   // Send email
   const transporter = nodemailer.createTransport({
@@ -181,27 +181,28 @@ const verifyEmail = asyncHandler(async (req, res) => {
 
 const resetPassword = asyncHandler(async (req, res) => {
   const { token } = req.params;
+  const { password } = req.body;
   const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
-  const pending=await PendingUser.findOne({
-    
-    passwordResetToken: hashedToken,
-    passwordResetExpires: { $gt: Date.now() },
-  })
+  const pending = await PendingUser.findOne({
+    verificationToken: hashedToken,
+    verificationTokenExpires: { $gt: new Date() },
+  });
 
   if (!pending) {
     throw new ApiError(400, "Password reset token is invalid or has expired");
   }
-  const user=await User.findOne({email:pending.email});
-    if(!user){
-    throw new ApiError(404,"User not found")
+
+  const user = await User.findOne({ email: pending.email });
+  if (!user) {
+    throw new ApiError(404, "User not found");
   }
-  user.password = req.body.password;
+
+  user.password = password;
   await user.save({ validateBeforeSave: false });
-  PendingUser.deleteOne({_id:pending._id})
+  await PendingUser.deleteOne({ _id: pending._id });
 
-  return res.redirect(`${process.env.frontURL}/`);
-
+  return res.status(200).json(new apiResponce(200, {}, "Password has been reset successfully!"));
 });
 
 export {
