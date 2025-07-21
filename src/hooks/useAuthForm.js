@@ -67,7 +67,7 @@ const useAuthForm = (initialMode = 'login') => {
         case 'login':
           response = await axios.post('/api/auth/login', { email: formData.email, password: formData.password });
           console.log('Login API response:', response.data);
-          localStorage.setItem('authToken', response.data.data.token);
+          localStorage.setItem('authToken', response.ata.data.token);
           setMessage({ type: 'success', text: 'Login successful! Redirecting...' });
           navigate('/home'); // Redirect to home page after successful login
           break;
