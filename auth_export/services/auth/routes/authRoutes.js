@@ -13,7 +13,7 @@ router.route("/verify-email/:token").get(asyncHandler(verifyEmail));
 
 // Protected route example
 router.route("/protected").get(verifyJWT, (req, res) => {
-  res.status(200).json({ message: `Welcome, ${req.user.name}! You have access to protected data.` });
+  res.status(200).json(req.user.email);
 });
 
 export default router;
