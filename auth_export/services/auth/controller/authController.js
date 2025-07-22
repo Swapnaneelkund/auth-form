@@ -5,8 +5,6 @@ import User from '../models/User.js';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 import PendingUser from '../models/pendingUser.js';
-import path from "path";
-
 
 const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
@@ -187,6 +185,10 @@ const verifyEmail = asyncHandler(async (req, res) => {
 
 const resetPassword = asyncHandler(async (req, res) => {
   const { token } = req.params;
+  const {password}= req.body;
+  if(!password){
+    throw new ApiError(400,"password is required");
+  }
   const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
   const pending=await PendingUser.findOne({
