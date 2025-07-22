@@ -5,6 +5,7 @@ import User from '../models/User.js';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 import PendingUser from '../models/pendingUser.js';
+import path from "path";
 
 
 const registerUser = asyncHandler(async (req, res) => {
@@ -85,15 +86,15 @@ const loginUser = asyncHandler(async (req, res) => {
   }
 
   const token = user.generateAuthToken();
-  
-  res.cookie('authToken', token, {
+    res.cookie('authToken', token, {
     httpOnly: true,
     secure: true,
     sameSite: 'lax',
+    path: '/',
     maxAge: 6 * 30 * 24 * 60 * 60 * 1000 
-  });
+});
   return res.status(200).json(
-    new apiResponce(200,"User logged in successfully")
+    new apiResponce(200, "User logged in successfully")
   );
 });
 
@@ -125,7 +126,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
 
   // Create reset URL
-  const resetURL = `${process.env.URL}/api/auth/reset-password/${resetToken}`; //`https://luxe-carry.vercel.app/reset-password/${resetToken}`
+  const resetURL = `${process.env.frontURL}/api/auth/reset-password/${resetToken}`; //`https://luxe-carry.vercel.app/reset-password/${resetToken}`
 
   // Send email
   const transporter = nodemailer.createTransport({
@@ -178,6 +179,7 @@ const verifyEmail = asyncHandler(async (req, res) => {
     httpOnly: true,
     secure: true,
     sameSite: 'lax',
+    path: '/',
     maxAge: 6 * 30 * 24 * 60 * 60 * 1000 
   });
   return res.redirect(`${process.env.frontURL}/home`);
@@ -196,9 +198,24 @@ const resetPassword = asyncHandler(async (req, res) => {
   if (!pending) {
     throw new ApiError(400, "Password reset token is invalid or has expired");
   }
-  const user=await User.findOnezzzzr.save({ validateBeforeSave: false });
-  PendingUser.deleteOne({_id:pending._id})
 
+  const user = await User.findOne({ email: pending.email });
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+  
+  user.password = password;
+  user.tokenVersion +=1;
+  await user.save({ validateBeforeSave: false });
+  await PendingUser.deleteOne({ _id: pending._id });
+  if (req.cookies?.authToken) {
+    res.clearCookie('authToken', {
+     httpOnly: true,
+     secure: true,
+     path:'/',
+     sameSite: 'lax',
+   });
+  }
   return res.redirect(`${process.env.frontURL}/`);
 
 });

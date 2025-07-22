@@ -24,6 +24,7 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  tokenVersion: { type: Number, default: 0 }
 }, { timestamps: true });
 
 // Hash password before saving
@@ -40,7 +41,10 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
 
 // Generate JWT token
 userSchema.methods.generateAuthToken = function () {
-  return jwt.sign({ id: this.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
+  return jwt.sign({ email: this.email, tokenVersion: this.tokenVersion }, process.env.JWT_SECRET,{
+  expiresIn: "180d" 
+});
+
 };
 
 const User = mongoose.model('User', userSchema);
