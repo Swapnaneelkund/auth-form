@@ -6,7 +6,6 @@ import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 import PendingUser from '../models/pendingUser.js';
 
-
 const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
 
@@ -85,11 +84,15 @@ const loginUser = asyncHandler(async (req, res) => {
   }
 
   const token = user.generateAuthToken();
-
-  const loggedInUser = await User.findById(user._id).select("-password");
-
+    res.cookie('authToken', token, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 6 * 30 * 24 * 60 * 60 * 1000 
+});
   return res.status(200).json(
-    new apiResponce(200, { user: loggedInUser, token }, "User logged in successfully")
+    new apiResponce(200, "User logged in successfully")
   );
 });
 
@@ -173,21 +176,26 @@ const verifyEmail = asyncHandler(async (req, res) => {
   res.cookie('authToken', token, {
     httpOnly: true,
     secure: true,
-    sameSite: 'Strict',
+    sameSite: 'lax',
+    path: '/',
     maxAge: 6 * 30 * 24 * 60 * 60 * 1000 
-});
+  });
   return res.redirect(`${process.env.frontURL}/home`);
 });
 
 const resetPassword = asyncHandler(async (req, res) => {
   const { token } = req.params;
-  const { password } = req.body;
+  const {password}= req.body;
+  if(!password){
+    throw new ApiError(400,"password is required");
+  }
   const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
-  const pending = await PendingUser.findOne({
+  const pending=await PendingUser.findOne({
+    
     verificationToken: hashedToken,
     verificationTokenExpires: { $gt: new Date() },
-  });
+  })
 
   if (!pending) {
     throw new ApiError(400, "Password reset token is invalid or has expired");
@@ -197,12 +205,21 @@ const resetPassword = asyncHandler(async (req, res) => {
   if (!user) {
     throw new ApiError(404, "User not found");
   }
-
+  
   user.password = password;
+  user.tokenVersion +=1;
   await user.save({ validateBeforeSave: false });
   await PendingUser.deleteOne({ _id: pending._id });
+  if (req.cookies?.authToken) {
+    res.clearCookie('authToken', {
+     httpOnly: true,
+     secure: true,
+     path:'/',
+     sameSite: 'lax',
+   });
+  }
+  return res.redirect(`${process.env.frontURL}/`);
 
-  return res.status(200).json(new apiResponce(200, {}, "Password has been reset successfully!"));
 });
 
 export {
