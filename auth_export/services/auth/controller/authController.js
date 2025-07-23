@@ -124,7 +124,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
 
   // Create reset URL
-  const resetURL = `${process.env.frontURL}/api/auth/reset-password/${resetToken}`; //`https://luxe-carry.vercel.app/reset-password/${resetToken}`
+  const resetURL = `${process.env.frontURL}/reset-password/${resetToken}`; //`https://luxe-carry.vercel.app/reset-password/${resetToken}`
 
   // Send email
   const transporter = nodemailer.createTransport({
