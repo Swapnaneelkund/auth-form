@@ -12,7 +12,7 @@ const Home = () => {
       const token = localStorage.getItem('authToken');
       console.log('Token from localStorage:', token);
       if (!token) {
-        setError('No token found. Please log in.');
+        setError('No token found.');
         return;
       }
       const response = await axios.get('/api/auth/protected', {
