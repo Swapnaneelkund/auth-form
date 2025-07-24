@@ -92,7 +92,7 @@ const loginUser = asyncHandler(async (req, res) => {
     maxAge: 6 * 30 * 24 * 60 * 60 * 1000 
 });
   return res.status(200).json(
-    new apiResponce(200, "User logged in successfully")
+    new apiResponce(200,"User logged in successfully")
   );
 });
 
@@ -221,11 +221,21 @@ const resetPassword = asyncHandler(async (req, res) => {
   return res.redirect(`${process.env.frontURL}/`);
 
 });
+const Logout = asyncHandler((req, res) => {
+  res.clearCookie('authToken', {
+    httpOnly: true,
+    secure: true,
+    path: '/',
+    sameSite: 'lax',
+  });
+  res.status(200).json({ message: "Logged out successfully" });
+});
 
 export {
   registerUser,
   loginUser,
   forgotPassword,
   verifyEmail,
-  resetPassword
+  resetPassword,
+  Logout
 };
