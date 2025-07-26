@@ -45,7 +45,7 @@ const useAuthForm = (initialMode = 'login') => {
       } else if (formData.password.length < 8) {
         newErrors.password = 'Password must be at least 8 characters';
       } else if (mode === 'signup' && !/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
-        newErrors.password = 'Password must contain upper, lower, number';
+        newErrors.password = 'Password must contain at least one uppercase letter, one lowercase letter, and one number';
       }
       if (mode === 'signup' && formData.password !== formData.confirmPassword) {
         newErrors.confirmPassword = 'Passwords do not match';
@@ -70,8 +70,9 @@ const useAuthForm = (initialMode = 'login') => {
           response = await axios.post('/api/auth/login', {
             email: formData.email,
             password: formData.password
-          }, { withCredentials: true }); // ✅ cookie sent
-          setIsAuthenticated(true); // ✅ update auth
+          }, { withCredentials: true }); 
+          setIsAuthenticated(true); 
+          setMessage({ type: 'success', text: 'Login successful! Redirecting...' });
           navigate('/home');
           break;
 
@@ -82,15 +83,14 @@ const useAuthForm = (initialMode = 'login') => {
             password: formData.password,
             confirmPassword: formData.confirmPassword
           }, { withCredentials: true });
-          setMessage({ type: 'success', text: 'Account created successfully!' });
+          setMessage({ type: 'success', text: 'Account created successfully! Please check your email to verify your account.' });
           break;
 
         case 'forgot':
           await axios.post('/api/auth/forgot-password', {
             email: formData.email
           });
-          setMessage({ type: 'success', text: 'Reset link sent!' });
-          setTimeout(() => {
+          setMessage({ type: 'success', text: 'Password reset link sent to your email. Please check your inbox.' });          setTimeout(() => {
             setMode('login');
             resetForm();
           }, 3000);
@@ -100,7 +100,7 @@ const useAuthForm = (initialMode = 'login') => {
           break;
       }
     } catch (error) {
-      const errorMessage = error.response?.data?.message || error.message;
+      const errorMessage = error.response?.data?.message || error.message || 'An unexpected error occurred. Please try again.';
       setMessage({ type: 'error', text: errorMessage });
     } finally {
       setLoading(false);
