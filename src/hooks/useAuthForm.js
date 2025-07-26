@@ -14,28 +14,31 @@ const useAuthForm = (initialMode = 'login') => {
     confirmPassword: ''
   });
   const [errors, setErrors] = useState({});
+  const [isAuthenticated, setIsAuthenticated] = useState(null); 
 
-  const isAuthenticated = !!localStorage.getItem('authToken');
+  
+  useEffect(() => {
+    axios.get('/api/auth/protected', { withCredentials: true })
+      .then(() => setIsAuthenticated(true))
+      .catch(() => setIsAuthenticated(false));
+  }, []);
 
-  const logout = () => {
-    localStorage.removeItem('authToken');
-    setMessage({ type: 'success', text: 'Logged out successfully.' });
-    navigate('/'); // Redirect to login page after logout
+  const logout = async () => {
+    await axios.post('/api/auth/logout', {}, { withCredentials: true }); // optional logout route
+    setIsAuthenticated(false); 
+    navigate('/');
   };
 
   const validateForm = () => {
     const newErrors = {};
-
     if (mode === 'signup' && !formData.name.trim()) {
       newErrors.name = 'Name is required';
     }
-
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
     }
-
     if (mode !== 'forgot') {
       if (!formData.password) {
         newErrors.password = 'Password is required';
@@ -44,7 +47,6 @@ const useAuthForm = (initialMode = 'login') => {
       } else if (mode === 'signup' && !/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
         newErrors.password = 'Password must contain at least one uppercase letter, one lowercase letter, and one number';
       }
-
       if (mode === 'signup' && formData.password !== formData.confirmPassword) {
         newErrors.confirmPassword = 'Passwords do not match';
       }
@@ -65,29 +67,39 @@ const useAuthForm = (initialMode = 'login') => {
       let response;
       switch (mode) {
         case 'login':
-          response = await axios.post('/api/auth/login', { email: formData.email, password: formData.password });
-          console.log('Login API response:', response.data);
-          localStorage.setItem('authToken', response.data.data.token);
+          response = await axios.post('/api/auth/login', {
+            email: formData.email,
+            password: formData.password
+          }, { withCredentials: true }); 
+          setIsAuthenticated(true); 
           setMessage({ type: 'success', text: 'Login successful! Redirecting...' });
-          navigate('/home'); // Redirect to home page after successful login
+          navigate('/home');
           break;
+
         case 'signup':
-          response = await axios.post('/api/auth/register', { name: formData.name, email: formData.email, password: formData.password, confirmPassword: formData.confirmPassword });
+          await axios.post('/api/auth/register', {
+            name: formData.name,
+            email: formData.email,
+            password: formData.password,
+            confirmPassword: formData.confirmPassword
+          }, { withCredentials: true });
           setMessage({ type: 'success', text: 'Account created successfully! Please check your email to verify your account.' });
           break;
+
         case 'forgot':
-          response = await axios.post('/api/auth/forgot-password', { email: formData.email });
-          setMessage({ type: 'success', text: 'Password reset link sent to your email. Please check your inbox.' });
-          setTimeout(() => {
+          await axios.post('/api/auth/forgot-password', {
+            email: formData.email
+          });
+          setMessage({ type: 'success', text: 'Password reset link sent to your email. Please check your inbox.' });          setTimeout(() => {
             setMode('login');
             resetForm();
           }, 3000);
           break;
+
         default:
           break;
       }
     } catch (error) {
-      console.log(error);
       const errorMessage = error.response?.data?.message || error.message || 'An unexpected error occurred. Please try again.';
       setMessage({ type: 'error', text: errorMessage });
     } finally {
@@ -98,10 +110,7 @@ const useAuthForm = (initialMode = 'login') => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
   const resetForm = () => {
@@ -115,9 +124,7 @@ const useAuthForm = (initialMode = 'login') => {
     resetForm();
   };
 
-  const clearMessage = () => {
-    setMessage({ type: '', text: '' });
-  };
+  const clearMessage = () => setMessage({ type: '', text: '' });
 
   return {
     mode,
