@@ -10,7 +10,7 @@ router.route("/login").post(validate(loginSchema), loginUser);
 router.route("/forgot-password").post(validate(forgotPasswordSchema), forgotPassword);
 router.route("/reset-password/:token").post(validate(resetPasswordSchema),resetPassword);
 router.route("/verify-email/:token").get(verifyEmail);
-router.route("/logout").post(asyncHandler(Logout));
+router.route("/logout").post(Logout);
 // Protected route example
 router.route("/protected").get(verifyJWT, (req, res) => {
   res.status(200).json(req.user.email);
