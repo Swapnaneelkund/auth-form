@@ -36,13 +36,19 @@ const resetPasswordSchema = z.object({
 
 const validate = (schema) => asyncHandler(async (req, res, next) => {
   try {
-    await schema.parseAsync(req.body);
+    const body = { ...req.body }; // <-- convert to normal object
+    console.log(body)
+    await schema.parseAsync(body);
     next();
   } catch (error) {
-    const errors = error.errors.map((err) => err.message);
-    throw new ApiError(400, "Validation failed", error);
+    if (error.name === "ZodError") {
+      const errors = error.issues.map((issue) => issue.message);
+      return next(new ApiError(400, "Validation failed", errors));
+    }
+    return next(error);
   }
 });
+
 
 export {
   validate,

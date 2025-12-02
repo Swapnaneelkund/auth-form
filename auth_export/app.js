@@ -18,14 +18,17 @@ if (process.env.mongodbURI) {
   logger.warn("No MongoDB URI found in .env. Skipping database connection.");
 }
 
-const allowedOrigin = process.env.CORS_ORIGIN || "http://127.0.0.1:5500";
+// const allowedOrigin = process.env.CORS_ORIGIN || "http://127.0.0.1:5500" || 'http://localhost';
 
 app.use(
-  cors({
-    origin: allowedOrigin,
-    credentials: true,
-    optionsSuccessStatus: 200,
-  })
+
+  cors(
+  //   {
+  //   // origin: allowedOrigin,
+  //   // credentials: true,
+  //   // optionsSuccessStatus: 200, 
+  // }
+)
 );
 
 app.use(express.json({ limit: "16kb" }));
